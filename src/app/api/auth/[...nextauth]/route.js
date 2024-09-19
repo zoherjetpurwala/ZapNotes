@@ -11,21 +11,22 @@ const handler = NextAuth({
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
   ],
   callbacks: {
-    authorization: {
-      params: {
-        redirect_uri: "https://zapnotes.vercel.app/api/auth/callback/google",
-      },
-    },
     async signIn({ user, account, profile, email, credentials }) {
       if (account.provider === "google") {
         const existingUser = await prisma.user.findUnique({
           where: { email: user.email },
           include: { accounts: true },
         });
-
         if (existingUser && existingUser.accounts.length === 0) {
           await prisma.account.create({
             data: {
@@ -55,10 +56,6 @@ const handler = NextAuth({
   },
   session: {
     strategy: "jwt",
-  },
-  jwt: {
-    encryption: true,
-    secret: process.env.NEXTAUTH_SECRET,
   },
   pages: {
     error: "/auth/error",
