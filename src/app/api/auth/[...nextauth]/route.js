@@ -14,6 +14,11 @@ const handler = NextAuth({
     }),
   ],
   callbacks: {
+    authorization: {
+      params: {
+        redirect_uri: "https://zapnotes.vercel.app/api/auth/callback/google",
+      },
+    },
     async signIn({ user, account, profile, email, credentials }) {
       if (account.provider === "google") {
         const existingUser = await prisma.user.findUnique({
