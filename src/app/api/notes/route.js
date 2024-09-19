@@ -4,13 +4,11 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// Helper function to get user ID from token
 async function getUserIdFromToken(req) {
   const token = await getToken({ req });
   return token?.sub;
 }
 
-// Helper function for error responses
 function errorResponse(message, status = 401) {
   return NextResponse.json({ error: message }, { status });
 }
@@ -22,14 +20,10 @@ export async function GET(req) {
 
     const notes = await prisma.notes.findMany({
       where: { authorId: userId },
-      select: { id: true, title: true, content: true }, // Only select needed fields
+      select: { id: true, title: true, content: true }, 
     });
 
-    return NextResponse.json(notes, {
-      headers: {
-        'Cache-Control': 'private, max-age=60', // Cache for 1 minute
-      },
-    });
+    return NextResponse.json(notes)
   } catch (error) {
     console.error("Error fetching notes:", error);
     return errorResponse("Internal Server Error", 500);
