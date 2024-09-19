@@ -15,13 +15,13 @@ const handler = NextAuth({
         params: {
           prompt: "consent",
           access_type: "offline",
-          response_type: "code"
-        }
-      }
+          response_type: "code",
+        },
+      },
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile, email, credentials }) {
+    async signIn({ user, account }) {
       if (account.provider === "google") {
         const existingUser = await prisma.user.findUnique({
           where: { email: user.email },
@@ -50,6 +50,7 @@ const handler = NextAuth({
     async session({ session, token, user }) {
       if (session?.user) {
         session.user.id = token.sub;
+        return session;
       }
       return session;
     },

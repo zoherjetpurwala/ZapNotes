@@ -1,77 +1,92 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from "next-auth/next";
-import { PrismaClient } from '@prisma/client';
+import { NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function GET() {
-  const session = await getServerSession();
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const notes = await prisma.notes.findMany({
-    where: { authorId: session.user.id },
-  });
-
-  return NextResponse.json(notes);
+// Helper function to get user ID from token
+async function getUserIdFromToken(req) {
+  const token = await getToken({ req });
+  return token?.sub;
 }
 
-export async function POST(request) {
-    const { id, title, content, authorId } = await request.json();
-  
-    if (!authorId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-  
-    // Handle both create and update operations
-    if (id) {
-      // Update existing note
-      const updatedNote = await prisma.notes.update({
-        where: { id },
-        data: { title, content },
-      });
-      return NextResponse.json(updatedNote);
-    } else {
-      // Create a new note
-      const newNote = await prisma.notes.create({
-        data: { title, content, authorId },
-      });
-      return NextResponse.json(newNote);
-    }
+// Helper function for error responses
+function errorResponse(message, status = 401) {
+  return NextResponse.json({ error: message }, { status });
+}
+
+export async function GET(req) {
+  try {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) return errorResponse("Unauthorized");
+
+    const notes = await prisma.notes.findMany({
+      where: { authorId: userId },
+      select: { id: true, title: true, content: true }, // Only select needed fields
+    });
+
+    return NextResponse.json(notes, {
+      headers: {
+        'Cache-Control': 'private, max-age=60', // Cache for 1 minute
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching notes:", error);
+    return errorResponse("Internal Server Error", 500);
   }
-  
-  export async function DELETE(request) {
-    const { id, userId } = await request.json();
-  
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-  
-    // Ensure that the note belongs to the current user
-    const note = await prisma.notes.findUnique({ where: { id } });
-  
-    if (note.authorId !== userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-  
-    await prisma.notes.delete({ where: { id } });
-  
+}
+
+export async function POST(req) {
+  try {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) return errorResponse("Unauthorized");
+
+    const { id, title, content } = await req.json();
+
+    const noteData = { title, content, authorId: userId };
+    const note = id
+      ? await prisma.notes.update({ where: { id, authorId: userId }, data: noteData })
+      : await prisma.notes.create({ data: noteData });
+
+    return NextResponse.json(note);
+  } catch (error) {
+    console.error("Error creating/updating note:", error);
+    return errorResponse("Internal Server Error", 500);
+  }
+}
+
+export async function DELETE(req) {
+  try {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) return errorResponse("Unauthorized");
+
+    const { id } = await req.json();
+
+    await prisma.notes.deleteMany({
+      where: { id, authorId: userId },
+    });
+
     return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting note:", error);
+    return errorResponse("Internal Server Error", 500);
   }
-
-export async function PUT(request) {
-  const session = await getServerSession();
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { id, title, content } = await request.json();
-  const note = await prisma.notes.update({
-    where: { id, authorId: session.user.id },
-    data: { title, content },
-  });
-
-  return NextResponse.json(note);
 }
 
+export async function PUT(req) {
+  try {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) return errorResponse("Unauthorized");
+
+    const { id, title, content } = await req.json();
+    const note = await prisma.notes.update({
+      where: { id, authorId: userId },
+      data: { title, content },
+    });
+
+    return NextResponse.json(note);
+  } catch (error) {
+    console.error("Error updating note:", error);
+    return errorResponse("Internal Server Error", 500);
+  }
+}
