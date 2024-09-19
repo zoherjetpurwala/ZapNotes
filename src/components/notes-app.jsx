@@ -2,7 +2,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusIcon } from "lucide-react";
@@ -123,13 +129,25 @@ export function NotesAppComponent() {
         <header className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-yellow-400">My Notes</h1>
         </header>
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-5">
-          <AnimatePresence>
-            {notes.map((note) => (
-              <NoteCard key={note.id} note={note} onClick={handleNoteClick} />
-            ))}
-          </AnimatePresence>
-        </div>
+        {notes.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-5">
+            <AnimatePresence>
+              {notes.map((note) => (
+                <NoteCard key={note.id} note={note} onClick={handleNoteClick} />
+              ))}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <div className="w-full h-full flex flex-col justify-center items-center pt-52 text-center">
+            <span className="text-2xl font-semibold text-white">
+              No notes available.
+            </span>
+            <span className="text-4xl">😕</span>
+            <p className="mt-2 text-slate-100">
+              Start by click on the plus icon button below!
+            </p>
+          </div>
+        )}
         <NewNoteButton onClick={handleNewNote} />
         <NoteModal
           isOpen={isModalOpen}
@@ -163,7 +181,9 @@ const NoteCard = ({ note, onClick }) => (
       <CardContent className="p-4">
         <h2 className="font-semibold mb-2">{note.title}</h2>
         <div className="border border-yellow-400 w-full" />
-        <p className="text-sm mt-2 text-gray-600 line-clamp-6">{note.content}</p>
+        <p className="text-sm mt-2 text-gray-600 line-clamp-6">
+          {note.content}
+        </p>
       </CardContent>
     </Card>
   </motion.div>
@@ -179,28 +199,46 @@ const NewNoteButton = ({ onClick }) => (
   </Button>
 );
 
-const NoteModal = ({ isOpen, onOpenChange, currentNote, setCurrentNote, onSave, onDelete }) => (
+const NoteModal = ({
+  isOpen,
+  onOpenChange,
+  currentNote,
+  setCurrentNote,
+  onSave,
+  onDelete,
+}) => (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
     <DialogContent className="max-w-[380px] rounded-2xl sm:max-w-[500px] p-8 bg-white">
       <DialogHeader>
         <DialogTitle>
           <Input
             value={currentNote?.title || ""}
-            onChange={(e) => setCurrentNote((prev) => ({ ...prev, title: e.target.value }))}
+            onChange={(e) =>
+              setCurrentNote((prev) => ({ ...prev, title: e.target.value }))
+            }
             className="text-lg font-semibold border-purple-300"
           />
         </DialogTitle>
       </DialogHeader>
       <Textarea
         value={currentNote?.content || ""}
-        onChange={(e) => setCurrentNote((prev) => ({ ...prev, content: e.target.value }))}
+        onChange={(e) =>
+          setCurrentNote((prev) => ({ ...prev, content: e.target.value }))
+        }
         className="min-h-[200px] border-purple-300"
       />
       <DialogFooter>
-        <Button variant="outline" onClick={onDelete} className="border-purple-300">
+        <Button
+          variant="outline"
+          onClick={onDelete}
+          className="border-purple-300"
+        >
           Delete
         </Button>
-        <Button onClick={onSave} className="bg-purple-500 hover:bg-purple-600 text-white font-semibold">
+        <Button
+          onClick={onSave}
+          className="bg-purple-500 hover:bg-purple-600 text-white font-semibold"
+        >
           Save
         </Button>
       </DialogFooter>
